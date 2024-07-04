@@ -1,0 +1,70 @@
+services:
+  processor:
+    build:
+      context: ./processor
+      dockerfile: Dockerfile
+    container_name: processor
+    depends_on:
+      - mysql
+    environment:
+      - DB_HOST=mysql
+      - DB_NAME=iot_sensor_data
+      - DB_USER=iot_gb
+      - DB_PASSWORD=password
+      - MQTT_BROKER=mqtt-dashboard.com
+      - MQTT_PORT=1883
+      - MQTT_TOPIC=iot/motion
+    networks:
+      - local
+    volumes:
+      - ./processor:/code
+
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: iot_sensor_data
+      MYSQL_USER: iot_gb
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    networks:
+      - local
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    depends_on:
+      - mysql
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    networks:
+      - local
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  simulator:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: simulator
+    environment:
+      - MQTT_BROKER=mqtt-dashboard.com
+      - MQTT_PORT=1883
+      - MQTT_TOPIC=iot/motion
+      - SENSOR_ID=IOT_001
+    volumes:
+      - ./simulator:/code
+
+networks:
+  local:
+
+volumes:
+  mysql_data:
+  grafana_data:
